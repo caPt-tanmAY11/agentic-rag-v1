@@ -7,7 +7,7 @@
 [![ChromaDB](https://img.shields.io/badge/VectorStore-ChromaDB-blueviolet.svg)](https://www.trychroma.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An advanced, self-correcting **Agentic Retrieval-Augmented Generation (RAG)** pipeline powered by **LangGraph**, **Groq LLMs**, **HuggingFace Embeddings**, and **ChromaDB**. 
+An advanced, self-correcting **Agentic Retrieval-Augmented Generation (RAG)** pipeline powered by **LangGraph**, **Groq LLMs**, **HuggingFace Embeddings**, and **ChromaDB** with full **LangSmith Tracing** observability. 
 
 Unlike static RAG systems that blindly generate answers from retrieved documents, this project implements an **intelligent state machine** that evaluates document relevance, checks for hallucinations, assesses question answering quality, and dynamically falls back to web search when local context is insufficient.
 
@@ -25,6 +25,7 @@ Standard RAG architectures suffer from three critical failure modes:
 * 📋 **Document Grader:** Filters out irrelevant chunks before passing them to the LLM.
 * 🌐 **Dynamic Web Search Fallback:** Automatically supplements missing knowledge using **Tavily Search** if local documents are deemed insufficient.
 * 🛡️ **Hallucination & Utility Guardrails:** Evaluates generated responses for factual grounding and answer relevance, triggering automated retries or fallback search if needed.
+* 🔍 **LangSmith Tracing:** Full end-to-end tracing across every node, edge, prompt, and LLM call.
 
 ---
 
@@ -62,48 +63,54 @@ graph TD
 
 ## 🔑 Environment Requirements (`.env`)
 
-Create a `.env` file in the root directory of the project. The application requires API keys for LLM inference (Groq) and web search fallback (Tavily).
+Create a `.env` file in the root directory of the project. The application requires API keys for LLM inference (**Groq**), observability (**LangSmith**), and web search fallback (**Tavily**).
 
 ### `.env.example`
 
 ```ini
 # =====================================================================
-# GROQ API CONFIGURATION (Required)
+# GROQ API CONFIGURATION
 # =====================================================================
-# Used for structured routing, document grading, hallucination checks,
-# and answer generation.
+# Required: Authenticates requests to Groq Cloud for fast inference using
+# openai/gpt-oss-120b across routing, grading, and generation.
 # Get your API key at: https://console.groq.com/keys
 GROQ_API_KEY="gsk_your_groq_api_key_here"
 
 # =====================================================================
-# TAVILY API CONFIGURATION (Required)
+# LANGSMITH OBSERVABILITY CONFIGURATION
 # =====================================================================
-# Used for live web search fallback when vectorstore retrieval fails.
-# Get your API key at: https://tavily.com/
-TAVILY_API_KEY="tvly-your_tavily_api_key_here"
+# Required for end-to-end tracing and monitoring of graph executions.
+# Get your API key at: https://smith.langchain.com/
+LANGSMITH_API_KEY="lsv2_pt_your_langsmith_api_key_here"
+LANGSMITH_TRACING="true"
+LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+LANGSMITH_PROJECT="agentic-rag"
 
 # =====================================================================
-# HUGGINGFACE CONFIGURATION (Optional)
+# TAVILY API CONFIGURATION
 # =====================================================================
-# BAAI/bge-small-en-v1.5 embeddings run locally by default via
-# sentence-transformers. Set this token only if accessing gated models
-# or to increase rate limits.
-# HF_TOKEN="hf_your_huggingface_token_here"
+# Required for live web search fallback when vectorstore retrieval fails.
+# Get your API key at: https://tavily.com/
+TAVILY_API_KEY="tvly-your_tavily_api_key_here"
 ```
 
 ### Summary of Environment Variables
 
 | Variable | Required | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `GROQ_API_KEY` | **Yes** | *None* | Authenticates requests to Groq Cloud for fast inference using `openai/gpt-oss-120b`. |
+| `GROQ_API_KEY` | **Yes** | *None* | Authenticates requests to Groq Cloud for fast LLM inference (`openai/gpt-oss-120b`). |
+| `LANGSMITH_API_KEY` | **Yes** | *None* | Authenticates with LangSmith for logging, tracing, and evaluation. |
+| `LANGSMITH_TRACING` | **Yes** | `"true"` | Enables automatic tracing for LangChain and LangGraph executions. |
+| `LANGSMITH_ENDPOINT` | **Yes** | `"https://api.smith.langchain.com"` | API endpoint URL for sending LangSmith traces. |
+| `LANGSMITH_PROJECT` | **Yes** | `"agentic-rag"` | Project name under which traces appear in the LangSmith dashboard. |
 | `TAVILY_API_KEY` | **Yes** | *None* | Authenticates requests to Tavily AI for search result aggregation. |
-| `HF_TOKEN` | *No* | *None* | Optional token for HuggingFace Hub model access. |
 
 ---
 
 ## 🛠️ Tech Stack & Dependencies
 
 * **Graph & Orchestration**: [LangGraph](https://langchain-ai.github.io/langgraph/) & [LangChain Core](https://python.langchain.com/)
+* **Observability & Tracing**: [LangSmith](https://smith.langchain.com/)
 * **LLM Inference**: [Groq Cloud](https://groq.com/) (`langchain-groq`) using `openai/gpt-oss-120b`
 * **Embeddings**: [HuggingFace Embeddings](https://huggingface.co/) (`BAAI/bge-small-en-v1.5`) via `sentence-transformers`
 * **Vector Store**: [ChromaDB](https://www.trychroma.com/) (`langchain-chroma`) with local disk persistence
@@ -220,16 +227,6 @@ agentic-rag/
 ├── test.py                        # Utility to test Tavily search tool
 ├── pyproject.toml                 # Project metadata and dependencies
 └── README.md                      # Project documentation
-```
-
----
-
-## 🧪 Testing & Validation
-
-The project uses `pytest` for unit and integration testing. Run tests across the codebase:
-
-```bash
-pytest
 ```
 
 ---
